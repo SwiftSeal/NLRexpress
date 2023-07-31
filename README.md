@@ -1,12 +1,16 @@
 # NLRexpress
 
 Content summary:
-* [General Info](#general-info)
-* [Project status](#project-status)
-* [Installation](#installation)
-* [Usage](#usage)
-* [Cite NLRexpress](#citing-nlrexpress)
-* [References](#references)
+- [NLRexpress](#nlrexpress)
+  - [General Info](#general-info)
+  - [Installation \& initial setup](#installation--initial-setup)
+      - [1. Cloning the project:](#1-cloning-the-project)
+      - [2. Create conda environment](#2-create-conda-environment)
+      - [3. Install HMMER v3.3 (Nov 2019)](#3-install-hmmer-v33-nov-2019)
+      - [4. Download predictor models](#4-download-predictor-models)
+  - [Usage](#usage)
+  - [Citing LRRpredictor](#citing-lrrpredictor)
+  - [References](#references)
 
 
 ## General Info

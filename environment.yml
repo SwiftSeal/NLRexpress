@@ -6,3 +6,4 @@ dependencies:
  - click=8.0.4
  - numpy=1.25.0
  - scikit-learn=1.2.2
+ - hmmer=3.3.2

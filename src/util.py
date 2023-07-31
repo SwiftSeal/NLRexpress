@@ -51,6 +51,8 @@ def printResultsOutput(inputRoot: str, outdir:Path, inputData: FeaturesData, res
                         countpos[motif] += 1
                     elif outformat in ["all", "long"]:
                         print('{0:>8}'.format('-'), end='\t', file=longFile)
+                
+                print(motif)
 
                 print(file=longFile)
 
