@@ -238,9 +238,11 @@ def generateInputFile( seqData:dict, hmm_it1:dict, hmm_it2:dict, inputFasta:Path
 
 def processFastaFile(input:Path, output:Path) -> dict :
     seqData = {}
-    with open(input, 'r') as inputFile:
+    with open(input, 'r') as inputFile, open(output, 'w') as outputFile:
         for record in SeqIO.parse(inputFile, "fasta"):
             seqData[record.id] = str(record.seq)
+            SeqIO.write(record, outputFile, "fasta")
+
     return seqData
 
 
