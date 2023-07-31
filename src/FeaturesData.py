@@ -6,6 +6,7 @@ from datetime import datetime
 import sys
 import subprocess
 import re
+from Bio import SeqIO
 
 # allMotifs= {
 #     "rdhhhdhEDVID" : { "windLeft": 5, "windRight": 5, "motifSpan": 12},
@@ -202,41 +203,45 @@ def generateInputFile( seqData:dict, hmm_it1:dict, hmm_it2:dict, inputFasta:Path
 
 
 
-def processFastaFile( input:Path, output:Path) -> dict :
+#def processFastaFile( input:Path, output:Path) -> dict :
+#
+#    # TODO implement a better FASTA file check
+#
+#    seqData = {}
+#
+#    try:
+#        with open( input, 'r' ) as inputFile :
+#            lines = inputFile.readlines()
+#            for i, line in enumerate(lines):
+#                if line[0] == ">":
+#                    if i>0:
+#                        seqData[ name ] = seq
+#                    name = line.split()[0][1:]
+#                    seq = ''
+#                else:
+#                    seq += line[:-1]
+#            seqData[name] = seq
+#
+#        if len(seqData) > 1001:
+#            raise("The input FASTA file contains more than the maximum allowed of 100 sequences. Please use splitFasta.py to split your input file.")
+#
+#        with open(output, 'w') as outputFile:
+#            for name in seqData:
+#                print('>', name, sep='', file=outputFile)
+#                print(''.join(seqData[name].split()), file=outputFile)
+#
+#    except OSError as e:
+#        print("FASTA file error:", sys.exc_info()[0])
+#        raise
+#
+#    return seqData
 
-    # TODO implement a better FASTA file check
-
+def processFastaFile(input:Path, output:Path) -> dict :
     seqData = {}
-
-    try:
-        with open( input, 'r' ) as inputFile :
-            lines = inputFile.readlines()
-            for i, line in enumerate(lines):
-                if line[0] == ">":
-                    if i>0:
-                        seqData[ name ] = seq
-                    name = line.split()[0][1:]
-                    seq = ''
-                else:
-                    seq += line[:-1]
-            seqData[name] = seq
-
-        if len(seqData) > 1001:
-            raise("The input FASTA file contains more than the maximum allowed of 100 sequences. Please use splitFasta.py to split your input file.")
-
-        with open(output, 'w') as outputFile:
-            for name in seqData:
-                print('>', name, sep='', file=outputFile)
-                print(''.join(seqData[name].split()), file=outputFile)
-
-    except OSError as e:
-        print("FASTA file error:", sys.exc_info()[0])
-        raise
-
+    with open(input, 'r') as inputFile:
+        for record in SeqIO.parse(inputFile, "fasta"):
+            seqData[record.id] = str(record.seq)
     return seqData
-
-
-
 
 
 
