@@ -8,14 +8,12 @@ from Bio import SeqIO
 
 allMotifs = {
     "extEDVID": {"windLeft": 5, "windRight": 5, "motifSpan": 12},
-
     "bA": {"windLeft": 5, "windRight": 5, "motifSpan": 10},
     "aA": {"windLeft": 5, "windRight": 5, "motifSpan": 7},
     "bC": {"windLeft": 5, "windRight": 5, "motifSpan": 8},
     "aC": {"windLeft": 5, "windRight": 5, "motifSpan": 6},
     "bDaD1": {"windLeft": 5, "windRight": 5, "motifSpan": 16},
     "aD3": {"windLeft": 5, "windRight": 5, "motifSpan": 13},
-
     "VG": {"windLeft": 5, "windRight": 5, "motifSpan": 5},
     "P-loop": {"windLeft": 5, "windRight": 5, "motifSpan": 9},
     "RNSB-A": {"windLeft": 5, "windRight": 5, "motifSpan": 10},
@@ -28,8 +26,6 @@ allMotifs = {
     "LxxLxL": {"windLeft": 5, "windRight": 5, "motifSpan": 6}
 }
 
-
-
 @dataclass
 class FeaturesData:
     """
@@ -38,81 +34,37 @@ class FeaturesData:
     seqData: dict
     hmmData: dict
 
+def generateFeatures(inputFasta: Path, output_directory: Path, threads: int) -> FeaturesData :
 
-def generateFeatures( inputFasta:Path, outdir:Path, motifs:dict, cpuNum:int, skipJhmmer:bool, annotations={}) -> FeaturesData :
-    """
-
-    :param inputFasta:
-    :param outdir:
-    :param motifs:
-    :param skipJhmmer:
-    :return:
-    """
-
-    logger = logging.getLogger("")
-
-    # STEP 1: Check FASTA file
-
-    logger.info(datetime.now().strftime("%d/%m/%Y %H:%M:%S") + ':\t' + 'Checking FASTA file - started')
-
-    processesInputFasta = Path(str(outdir) + "/" + str(inputFasta.stem) + '.fasta_proc')
+    processesInputFasta = Path(str(output_directory) + "/" + str(inputFasta.stem) + '.fasta_proc')
     seqData = processFastaFile( inputFasta, processesInputFasta )
 
-    logger.info( datetime.now().strftime("%d/%m/%Y %H:%M:%S") + ':\t' + 'Checking FASTA file - done')
+    run_jackhmmer(processesInputFasta, output_directory, threads, 'hmmer_db/targetDB.fasta')
 
-
-    # STEP 2: Run Jhmmer if needed
-
-    if True:
-
-        # not all Jhmmer params were added, as the training was done with specific params and therefore for
-        # new data the same params should be used. For now only cpuNum and targetDB path are customizable
-        # from here
-        params = { 'cpuNum':cpuNum,
-                    'targetDB': "hmmer_db/targetDB.fasta" }
-
-        logger.info(datetime.now().strftime("%d/%m/%Y %H:%M:%S") + ':\t' + 'Running JackHMMER - started')
-        jhmmerLog = runJhmmer(processesInputFasta, outdir, params)
-        logger.info(datetime.now().strftime("%d/%m/%Y %H:%M:%S") + ':\t' + 'Running JackHMMER - done')
-
-
-    # STEP 3: Parse and organize HMM data; generate input file for later use;
-
-    logger.info(datetime.now().strftime("%d/%m/%Y %H:%M:%S") + ':\t' + 'Preparing features: Parsing HMM profile - started')
+    logging.info('Preparing features: Parsing HMM profile - started')
 
     try:
-        hmmFile1 = str(outdir) + "/" + str(processesInputFasta.stem) + '-1.hmm'
-        hmm_it1 = parse_hmm_multiprot( hmmFile1 )
+        hmmFile1 = str(output_directory) + "/" + str(processesInputFasta.stem) + '-1.hmm'
+        hmm_it1 = parse_hmm_multiprot(hmmFile1)
     except FileNotFoundError:
         raise FileNotFoundError('Preparing features: HMM profile iteration 1 was not found at. Execution stopped ')
 
     try:
-        hmmFile2 = str(outdir) + "/" + str(processesInputFasta.stem) + '-2.hmm'
-        hmm_it2 = parse_hmm_multiprot( hmmFile2 )
+        hmmFile2 = str(output_directory) + "/" + str(processesInputFasta.stem) + '-2.hmm'
+        hmm_it2 = parse_hmm_multiprot(hmmFile2)
 
     except FileNotFoundError:
-        logger.warning(
-            datetime.now().strftime(
-                "%d/%m/%Y %H:%M:%S") + ':\t' + 'Preparing features: HMM profile iteration 2 was not found at: '
-                + hmmFile2 + '. The first iteration HMM profile will be used alone.')
-        hmm_it2 = parse_hmm_multiprot( hmmFile1 )
-
+        logging.warning('Preparing features: HMM profile iteration 2 was not found at: ' + hmmFile2 + '. The first iteration HMM profile will be used alone.')
+        hmm_it2 = parse_hmm_multiprot(hmmFile1)
 
     hmmData = generateInputFile(seqData, hmm_it1, hmm_it2)
 
     return FeaturesData(seqData = seqData, hmmData = hmmData)
 
-
-
-
 def generateXmat (FeaturesData:dict, motif:str):
-    ###############################################################
-    # STEP 4: Create the X matrices for the requested motifs specs
-
     X = []
 
-    logger = logging.getLogger("")
-    logger.info( datetime.now().strftime("%d/%m/%Y %H:%M:%S") + ':\t' + 'Preparing features: NN input for motif ' + motif + ' started')
+    logging.info('Preparing features: NN input for motif ' + motif + ' started')
 
     for prot in FeaturesData.hmmData:
         seqLength = len( FeaturesData.seqData[prot] )
@@ -130,19 +82,11 @@ def generateXmat (FeaturesData:dict, motif:str):
                     for w in range(windLeft * (-1), motifSpan + windRight + 1):
                         X[-1] += features[i+w]
 
-    logger.info(datetime.now().strftime("%d/%m/%Y %H:%M:%S") + ':\t' + 'Preparing features: NN input for motif ' + motif + ' done')
+    logging.info('Preparing features: NN input for motif ' + motif + ' done')
 
     return X
 
 def generateInputFile( seqData:dict, hmm_it1:dict, hmm_it2:dict) -> dict:
-    """
-    :param seqData:
-    :param hmm_it1:
-    :param hmm_it3:
-    :param outdir:
-    :return:
-    """
-
     data = {}
 
     for name in seqData:
@@ -165,6 +109,7 @@ def generateInputFile( seqData:dict, hmm_it1:dict, hmm_it2:dict) -> dict:
 
 def processFastaFile(input:Path, output:Path) -> dict :
     seqData = {}
+
     with open(input, 'r') as inputFile, open(output, 'w') as outputFile:
         for record in SeqIO.parse(inputFile, "fasta"):
             seqData[record.id] = str(record.seq)
@@ -172,34 +117,23 @@ def processFastaFile(input:Path, output:Path) -> dict :
 
     return seqData
 
-def runJhmmer( inputFasta:Path, outdir:Path, params:dict ) -> str :
-    """
-    Runs JackHMMER for the input sequence and checks the log.
-    :param inputFasta: Path to the FASTA file (multi sequence FASTA allowed)
-    :param outdir: Path to the output directory where the HMM profiles will be saved (two files for iterations 1 and 2)
-    :param params: Dictorary with custom parameters for JackHMMER (more will be added)
-    :return: the stdout and stderr of the JackHMMER output
-    """
-    # TODO add more customizable params
-    # not all Jhmmer params were added, as the training was done with specific params and therefore for
-    # new data the same params should be used. For now only cpuNum and targetDB path are customizable
-    # from here
+def run_jackhmmer(inputFasta: Path, output_directory: Path, threads: int, target_db: str):
 
+    logging.info('jackhmmer - started')
     scriptDir = Path(__file__).resolve().parents[1]
-    jhhmerLog = subprocess.run(["jackhmmer",
-                                "--cpu", str(params["cpuNum"]),
-                                "-o", "/dev/null",
-                                "-N", "2",
-                                "-E", "1e-5",
-                                "--domE", "1e-5",
-                                "--noali",
-                                "--chkhmm", str(outdir) + "/" + str(inputFasta.stem),
-                                inputFasta,
-                                str(scriptDir) + '/' + params["targetDB"],
-                                ],
+    subprocess.run(["jackhmmer",
+                    "--cpu", str(threads),
+                    "-o", "/dev/null",
+                    "-N", "2",
+                    "-E", "1e-5",
+                    "--domE", "1e-5",
+                    "--noali",
+                    "--chkhmm", str(output_directory) + "/" + str(inputFasta.stem),
+                    inputFasta,
+                    str(scriptDir) + '/' + target_db,
+                    ],
                    stdout=subprocess.PIPE)
-
-    return jhhmerLog
+    logging.info('jackhmmer - done')
 
 def parse_hmm_multiprot( hmmFile:Path ) -> dict:
     """
@@ -214,8 +148,6 @@ def parse_hmm_multiprot( hmmFile:Path ) -> dict:
     header2 = ["m->m", "m->i", "m->d", "i->m", "i->i", "d->m", "d->d"]
 
     hmm = {}
-
-    logger = logging.getLogger("")
 
     try:
         with open(hmmFile, 'r') as f:
@@ -245,14 +177,12 @@ def parse_hmm_multiprot( hmmFile:Path ) -> dict:
 
                 elif start > 0 and i >= start and i <= 3*(start + length) :
                     if not hascomp:
-                        logger.error(datetime.now().strftime("%d/%m/%Y %H:%M:%S") + ':\t' +
-                                     "Problem parsing HMM file: no COMP line was found for prot " + name + line )
-                        raise Exception( "Problem parsing HMM file: no COMP line was found for prot ", name, line )
+                        logging.error("Problem parsing HMM file: no COMP line was found for prot " + name + line)
+                        raise Exception("Problem parsing HMM file: no COMP line was found for prot ", name, line)
 
                     elif length == 0:
-                        logger.error(datetime.now().strftime("%d/%m/%Y %H:%M:%S") + ':\t' +
-                                     "Problem parsing HMM file: no LENGTH line was found for prot " + name)
-                        raise Exception( "Problem parsing HMM file: no LENGTH line was found for prot ", name )
+                        logging.error("Problem parsing HMM file: no LENGTH line was found for prot " + name)
+                        raise Exception("Problem parsing HMM file: no LENGTH line was found for prot ", name)
 
                     else:
                         l = line.split()
@@ -267,12 +197,9 @@ def parse_hmm_multiprot( hmmFile:Path ) -> dict:
         return hmm
 
     except FileNotFoundError:
-        logger.error(
-            datetime.now().strftime(
-                "%d/%m/%Y %H:%M:%S") + ':\t' + 'Preparing features: HMM profile not found at: ' + str(hmmFile))
+        logging.error('Preparing features: HMM profile not found at: ' + str(hmmFile))
         raise FileNotFoundError('Preparing features: HMM profile not found at: ' + str(hmmFile))
 
     except:
-       logger.error( datetime.now().strftime("%d/%m/%Y %H:%M:%S") + ':\t' +
-                     "Something went wrong when parsing the HMM file " + str(hmmFile) )
+       logging.error("Something went wrong when parsing the HMM file " + str(hmmFile) )
        raise Exception( "Something went wrong when parsing the HMM file ", str(hmmFile) )
