@@ -4,6 +4,7 @@ from src.util import *
 import logging
 from datetime import datetime
 import os
+import pandas as pd
 
 
 sys.path.insert(0, os.path.abspath("."))
@@ -175,7 +176,8 @@ def predict( input: Path, outdir: Path, module: str, outformat:str, cpunum:int, 
         datetime.now().strftime("%d/%m/%Y %H:%M:%S") + ':\t' + 'Printing final results...started')
 
 
-    printResultsOutput(Path(input).stem, outdir, inputData, results, outformat)
+    #printResultsOutput(Path(input).stem, outdir, inputData, results, outformat)
+    write_output(inputData, results)
 
     logger.info(
         datetime.now().strftime("%d/%m/%Y %H:%M:%S") + ':\t' + 'Printing final results...done')
@@ -193,8 +195,6 @@ def setupLogger(input: Path, outdir: Path) :
     console.setLevel(logging.DEBUG)
     logger = logging.getLogger('').addHandler(console)
     return logger
-
-
 
 if __name__ == '__main__':
     predict()

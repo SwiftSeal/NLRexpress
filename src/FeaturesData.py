@@ -8,20 +8,6 @@ import subprocess
 import re
 from Bio import SeqIO
 
-# allMotifs= {
-#     "rdhhhdhEDVID" : { "windLeft": 5, "windRight": 5, "motifSpan": 12},
-#     "hhGRE"        : { "windLeft": 5, "windRight": 5, "motifSpan":  5},
-#     "GmGGvGKTT"    : { "windLeft": 5, "windRight": 5, "motifSpan":  9},
-#     "FDhrhWhshs"   : { "windLeft": 5, "windRight": 5, "motifSpan": 10},
-#     "KRhhhhDD"     : { "windLeft": 5, "windRight": 5, "motifSpan":  8},
-#     "KhhhTTR"      : { "windLeft": 5, "windRight": 5, "motifSpan":  7},
-#     "LseeeSWeLF"   : { "windLeft": 5, "windRight": 5, "motifSpan": 10},
-#     "CFLYCSLFP"    : { "windLeft": 5, "windRight": 5, "motifSpan":  9},
-#     "GLPLA"        : { "windLeft": 5, "windRight": 5, "motifSpan":  5},
-#     "MHD"          : { "windLeft": 5, "windRight": 5, "motifSpan":  3},
-#     "LxxLxL"          : { "windLeft": 5, "windRight": 5, "motifSpan":  6}
-# }
-
 allMotifs = {
     "extEDVID": {"windLeft": 5, "windRight": 5, "motifSpan": 12},
 
@@ -30,7 +16,6 @@ allMotifs = {
     "bC": {"windLeft": 5, "windRight": 5, "motifSpan": 8},
     "aC": {"windLeft": 5, "windRight": 5, "motifSpan": 6},
     "bDaD1": {"windLeft": 5, "windRight": 5, "motifSpan": 16},
-    #"aD1": {"windLeft": 5, "windRight": 5, "motifSpan": 5},
     "aD3": {"windLeft": 5, "windRight": 5, "motifSpan": 13},
 
     "VG": {"windLeft": 5, "windRight": 5, "motifSpan": 5},
@@ -201,41 +186,6 @@ def generateInputFile( seqData:dict, hmm_it1:dict, hmm_it2:dict, inputFasta:Path
 
     return data
 
-
-
-#def processFastaFile( input:Path, output:Path) -> dict :
-#
-#    # TODO implement a better FASTA file check
-#
-#    seqData = {}
-#
-#    try:
-#        with open( input, 'r' ) as inputFile :
-#            lines = inputFile.readlines()
-#            for i, line in enumerate(lines):
-#                if line[0] == ">":
-#                    if i>0:
-#                        seqData[ name ] = seq
-#                    name = line.split()[0][1:]
-#                    seq = ''
-#                else:
-#                    seq += line[:-1]
-#            seqData[name] = seq
-#
-#        if len(seqData) > 1001:
-#            raise("The input FASTA file contains more than the maximum allowed of 100 sequences. Please use splitFasta.py to split your input file.")
-#
-#        with open(output, 'w') as outputFile:
-#            for name in seqData:
-#                print('>', name, sep='', file=outputFile)
-#                print(''.join(seqData[name].split()), file=outputFile)
-#
-#    except OSError as e:
-#        print("FASTA file error:", sys.exc_info()[0])
-#        raise
-#
-#    return seqData
-
 def processFastaFile(input:Path, output:Path) -> dict :
     seqData = {}
     with open(input, 'r') as inputFile, open(output, 'w') as outputFile:
@@ -244,9 +194,6 @@ def processFastaFile(input:Path, output:Path) -> dict :
             SeqIO.write(record, outputFile, "fasta")
 
     return seqData
-
-
-
 
 def runJhmmer( inputFasta:Path, outdir:Path, params:dict ) -> str :
     """
@@ -262,7 +209,6 @@ def runJhmmer( inputFasta:Path, outdir:Path, params:dict ) -> str :
     # from here
 
     scriptDir = Path(__file__).resolve().parents[1]
-    #jhhmerLog = subprocess.run(["/usr/local/bin/jackhmmer",
     jhhmerLog = subprocess.run(["jackhmmer",
                                 "--cpu", str(params["cpuNum"]),
                                 "-o", "/dev/null",
@@ -276,21 +222,7 @@ def runJhmmer( inputFasta:Path, outdir:Path, params:dict ) -> str :
                                 ],
                    stdout=subprocess.PIPE)
 
-    valideteJhmmerLog(jhhmerLog)
-
     return jhhmerLog
-
-
-
-
-def valideteJhmmerLog(jhhmerLog:str):
-    # not implemented
-    # TODO check the Jhmmer log for red flags
-
-    return 1;
-
-
-
 
 def parse_hmm_multiprot( hmmFile:Path ) -> dict:
     """
@@ -367,10 +299,3 @@ def parse_hmm_multiprot( hmmFile:Path ) -> dict:
        logger.error( datetime.now().strftime("%d/%m/%Y %H:%M:%S") + ':\t' +
                      "Something went wrong when parsing the HMM file " + str(hmmFile) )
        raise Exception( "Something went wrong when parsing the HMM file ", str(hmmFile) )
-
-
-
-
-
-
-
