@@ -3,9 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import logging
 from datetime import datetime
-import sys
 import subprocess
-import re
 from Bio import SeqIO
 
 allMotifs = {

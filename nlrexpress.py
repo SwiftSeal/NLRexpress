@@ -1,10 +1,9 @@
-import click
 from src.ModuleData import *
 from src.util import *
+import sys
 import os
-import pandas as pd
 import argparse
-
+import pandas as pd
 
 sys.path.insert(0, os.path.abspath("."))
 
@@ -60,7 +59,7 @@ def predict(input: Path, outdir: Path, outformat: str, cpunum: int, skipjhmmer: 
         X = generateXmat(inputData, p)
         results[p] = LRRexpress.predictors[p].model.predict_proba( X )
 
-    write_output(inputData, results)
+    write_output(inputData, results, outdir)
 
 if __name__ == '__main__':
 
