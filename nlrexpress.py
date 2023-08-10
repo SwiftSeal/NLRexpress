@@ -91,16 +91,75 @@ def write_output(inputData: FeaturesData, results: dict, output_dir: Path, cutof
     df = pd.DataFrame({'protein': protein, 'res_id': res_id, 'motif_id': motif_id, 'probability': probability, 'negative_5_pos': negative_5_pos, 'motifseq': motifseq, 'positive_5_pos': positive_5_pos})
     df.to_csv(str(output_dir) + '/nlrexpress.csv', index=False)
 
-if __name__ == '__main__':
+def annotate(input: Path, output_directory: Path):
 
-    parser = argparse.ArgumentParser(description='NLRexpress: a tool for NLR protein subfamily assignment')
-    parser.add_argument('-i', '--input', help='Input file in FASTA format', required=True)
-    parser.add_argument('-o', '--output_directory', help='Output directory', required=True)
-    parser.add_argument('-t', '--threads', help='Number of CPUs to use', required=False, default=4, type=int)
-    parser.add_argument('--verbose', help='Verbose mode', required=False, action='store_true', default=False)
+    CC_motifs = ["extEDVID"]
+    NBS_motifs = ["VG", "P-loop", "RNSB-A", "RNSB-B", "RNSB-C", "RNSB-D", "Walker-B", "GLPL", "MHD"]
+    TIR_motifs = ["bA", "aA", "bC", "aC", "bDaD1", "aD3"]
+    LRR_motifs = ["LxxLxL"]
+
+    threshold = 0.8
+    allowed_gaps = 1
+
+    # read input into pandas df
+    df = pd.read_csv(input)
+
+    # get unique proteins
+    proteins = df['protein'].unique()
+
+    for protein in proteins:
+        annotation = []
+
+        # subset df for protein
+        df_subset = df[df["protein"] == protein]
+
+        # ensure sorted by residue id
+        df_subset = df_subset.sort_values(by=["res_id"])
+
+        # get lists of data
+        residues = df_subset["res_id"].tolist()
+        motifs = df_subset["motif_id"].tolist()
+        probabilities = df_subset["probability"].tolist()
+
+        for i in range(len(residues)):
+            # check if residue is a CC motif
+            if motifs[i] in CC_motifs and probabilities[i] >= threshold:
+                annotation.append("CC")
+            elif motifs[i] in NBS_motifs and probabilities[i] >= threshold:
+                annotation.append("NBS")
+            elif motifs[i] in TIR_motifs and probabilities[i] >= threshold:
+                annotation.append("TIR")
+            elif motifs[i] in LRR_motifs and probabilities[i] >= threshold:
+                annotation.append("LRR")
+            else:
+                raise Exception(f"Unknown motif at residue {residues[i]} of protein {protein}")
+        
+        print(annotation)
+
+def main():
+    parser = argparse.ArgumentParser("NLRexpress")
+    parser.add_argument("--debug", action="store_true", help="Print debug messages")
+
+    subparsers = parser.add_subparsers(dest="command")
+    predict_parser = subparsers.add_parser("nlrexpress", help="Predict NLR-related motifs")
+    predict_parser.add_argument("--input", type=str, required=True, help="Input FASTA file")
+    predict_parser.add_argument("--output_directory", type=str, required=True, help="Output directory")
+    predict_parser.add_argument("--threads", type=int, default=4, help="Number of threads")
+
+    annotate_parser = subparsers.add_parser("annotate", help="Annotate proteins with NLR-related motifs")
+    annotate_parser.add_argument("--input", type=str, required=True, help="Input FASTA file")
+    annotate_parser.add_argument("--output_directory", type=str, required=True, help="Output directory")
+
     args = parser.parse_args()
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
+    if args.command == "predict":
+        predict(args.input, args.output_directory, args.threads)
+    elif args.command == "annotate":
+        annotate(args.input, args.output_directory)
+    else:
+        parser.print_help()
+        sys.exit(1)
 
-    if args.verbose:
-        logging.basicConfig(level = logging.INFO)
-
-    predict(args.input, args.output_directory, args.threads)
+if __name__ == "__main__":
+    main()
